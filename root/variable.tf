@@ -1,0 +1,10 @@
+variable "rg" {}
+variable "vnet" {}
+variable "subnet" {}
+variable "nic" {}
+variable "pip" {}
+variable "nsg" {}
+variable "association" {}
+variable "vms" {}
+variable "bastion" {}
+variable "keyvault" {}
