@@ -1,271 +1,271 @@
 name: Terraform Azure Infrastructure
 
-on:
-  push:
-    branches:
-      - main
-      - 'feature/**'
+# on:
+#   push:
+#     branches:
+#       - main
+#       - 'feature/**'
 
-  pull_request:
-    branches:
-      - main
+#   pull_request:
+#     branches:
+#       - main
 
-  workflow_dispatch:
+#   workflow_dispatch:
 
-permissions:
-  contents: read
-  id-token: write
-  pull-requests: write
+# permissions:
+#   contents: read
+#   id-token: write
+#   pull-requests: write
 
-env:
-  TF_WORKING_DIR: ./root
-  TF_IN_AUTOMATION: true
+# env:
+#   TF_WORKING_DIR: ./root
+#   TF_IN_AUTOMATION: true
 
-jobs:
+# jobs:
 
-  # ==========================================================
-  # 1. SECURITY SCAN
-  # ==========================================================
+#   # ==========================================================
+#   # 1. SECURITY SCAN
+#   # ==========================================================
 
-  security-scan:
+#   security-scan:
 
-    name: Terraform Security Scan
+#     name: Terraform Security Scan
 
-    runs-on: ubuntu-latest
+#     runs-on: ubuntu-latest
 
-    steps:
+#     steps:
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
 
-      # -------------------------------
-      # Gitleaks
-      # -------------------------------
+#       # -------------------------------
+#       # Gitleaks
+#       # -------------------------------
 
-      - name: Gitleaks Scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Gitleaks Scan
+#         uses: gitleaks/gitleaks-action@v2
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # -------------------------------
-      # TFLint
-      # -------------------------------
+#       # -------------------------------
+#       # TFLint
+#       # -------------------------------
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+#       - name: Setup TFLint
+#         uses: terraform-linters/setup-tflint@v4
 
-      - name: Run TFLint
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          tflint --init
-          tflint
+#       - name: Run TFLint
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           tflint --init
+#           tflint
 
-      # -------------------------------
-      # tfsec
-      # -------------------------------
+#       # -------------------------------
+#       # tfsec
+#       # -------------------------------
 
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          working_directory: ${{ env.TF_WORKING_DIR }}
+#       - name: Run tfsec
+#         uses: aquasecurity/tfsec-action@v1.0.3
+#         with:
+#           working_directory: ${{ env.TF_WORKING_DIR }}
 
-      # -------------------------------
-      # Checkov
-      # -------------------------------
+#       # -------------------------------
+#       # Checkov
+#       # -------------------------------
 
-      - name: Run Checkov
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: ./root
-          framework: terraform
-          soft_fail: false
+#       - name: Run Checkov
+#         uses: bridgecrewio/checkov-action@v12
+#         with:
+#           directory: ./root
+#           framework: terraform
+#           soft_fail: false
 
 
-  # ==========================================================
-  # 2. TERRAFORM VALIDATION
-  # ==========================================================
+#   # ==========================================================
+#   # 2. TERRAFORM VALIDATION
+#   # ==========================================================
 
-  terraform-validate:
+#   terraform-validate:
 
-    name: Terraform Validate
+#     name: Terraform Validate
 
-    runs-on: ubuntu-latest
+#     runs-on: ubuntu-latest
 
-    needs:
-      - security-scan
+#     needs:
+#       - security-scan
 
-    steps:
+#     steps:
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.8
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: 1.9.8
 
-      - name: Terraform Format Check
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform fmt -check -recursive
+#       - name: Terraform Format Check
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           terraform fmt -check -recursive
 
-      - name: Terraform Init
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform init -input=false
+#       - name: Terraform Init
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           terraform init -input=false
 
-      - name: Terraform Validate
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform validate
+#       - name: Terraform Validate
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           terraform validate
 
 
-  # ==========================================================
-  # 3. TERRAFORM PLAN
-  # ==========================================================
+#   # ==========================================================
+#   # 3. TERRAFORM PLAN
+#   # ==========================================================
 
-  terraform-plan:
+#   terraform-plan:
 
-    name: Terraform Plan
+#     name: Terraform Plan
 
-    runs-on: ubuntu-latest
+#     runs-on: ubuntu-latest
 
-    needs:
-      - terraform-validate
+#     needs:
+#       - terraform-validate
 
-    steps:
+#     steps:
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.8
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: 1.9.8
 
-      # --------------------------------
-      # Azure Authentication
-      # --------------------------------
+#       # --------------------------------
+#       # Azure Authentication
+#       # --------------------------------
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+#       - name: Azure Login
+#         uses: azure/login@v2
+#         with:
+#           client-id: ${{ secrets.AZURE_CLIENT_ID }}
+#           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+#           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # --------------------------------
-      # Terraform Init
-      # --------------------------------
+#       # --------------------------------
+#       # Terraform Init
+#       # --------------------------------
 
-      - name: Terraform Init
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform init -input=false
+#       - name: Terraform Init
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           terraform init -input=false
 
-      # --------------------------------
-      # Terraform Plan
-      # --------------------------------
+#       # --------------------------------
+#       # Terraform Plan
+#       # --------------------------------
 
-      - name: Terraform Plan
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform plan \
-            -input=false \
-            -out=tfplan
+#       - name: Terraform Plan
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           terraform plan \
+#             -input=false \
+#             -out=tfplan
 
-      # --------------------------------
-      # Upload Plan
-      # --------------------------------
+#       # --------------------------------
+#       # Upload Plan
+#       # --------------------------------
 
-      - name: Upload Terraform Plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan
-          path: ./root/tfplan
+#       - name: Upload Terraform Plan
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: terraform-plan
+#           path: ./root/tfplan
 
 
-  # ==========================================================
-  # 4. TERRAFORM APPLY
-  # ==========================================================
+#   # ==========================================================
+#   # 4. TERRAFORM APPLY
+#   # ==========================================================
 
-  terraform-apply:
+#   terraform-apply:
 
-    name: Terraform Apply
+#     name: Terraform Apply
 
-    runs-on: ubuntu-latest
+#     runs-on: ubuntu-latest
 
-    needs:
-      - terraform-plan
+#     needs:
+#       - terraform-plan
 
-    # GitHub Environment
-    # Configure required approval
-    # in:
-    # Repository → Settings → Environments → production
+#     # GitHub Environment
+#     # Configure required approval
+#     # in:
+#     # Repository → Settings → Environments → production
 
-    if: github.ref == 'refs/heads/main'
+#     if: github.ref == 'refs/heads/main'
 
-    environment:
-      name: production
+#     environment:
+#       name: production
 
-    steps:
+#     steps:
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.8
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: 1.9.8
 
-      # --------------------------------
-      # Azure Login
-      # --------------------------------
+#       # --------------------------------
+#       # Azure Login
+#       # --------------------------------
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+#       - name: Azure Login
+#         uses: azure/login@v2
+#         with:
+#           client-id: ${{ secrets.AZURE_CLIENT_ID }}
+#           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+#           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # --------------------------------
-      # Terraform Init
-      # --------------------------------
+#       # --------------------------------
+#       # Terraform Init
+#       # --------------------------------
 
-      - name: Terraform Init
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform init -input=false
+#       - name: Terraform Init
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           terraform init -input=false
 
-      # --------------------------------
-      # Download Plan
-      # --------------------------------
+#       # --------------------------------
+#       # Download Plan
+#       # --------------------------------
 
-      - name: Download Terraform Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan
-          path: ./root
+#       - name: Download Terraform Plan
+#         uses: actions/download-artifact@v4
+#         with:
+#           name: terraform-plan
+#           path: ./root
 
-      # --------------------------------
-      # Terraform Apply
-      # --------------------------------
+#       # --------------------------------
+#       # Terraform Apply
+#       # --------------------------------
 
-      - name: Terraform Apply
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform apply \
-            -input=false \
-            -auto-approve \
-            tfplan
+#       - name: Terraform Apply
+#         working-directory: ${{ env.TF_WORKING_DIR }}
+#         run: |
+#           terraform apply \
+#             -input=false \
+#             -auto-approve \
+#             tfplan
 
 
-            #-----------------------------------------------------------------------------------------------------------
+#             #-----------------------------------------------------------------------------------------------------------
                 
                 
 
-name: Terraform Azure Infrastructure
+# name: Terraform Azure Infrastructure
 
 on:
   push:
@@ -433,9 +433,9 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.d2f0e88f-01c1-4394-ab35-58a50e2b88f1 }}
+          tenant-id: ${{ secrets.e5273632-114a-4cbd-9c0d-bdc7d468329b }}
+          subscription-id: ${{ secrets.ba256abb-cf64-41d5-99f2-6c1d2b097fa9 }}
 
 
       # --------------------------------
